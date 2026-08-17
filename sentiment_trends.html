@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentiment trends</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper: #F7F7F4;
+    --surface: #FFFFFF;
+    --ink: #1B1B18;
+    --ink-soft: #6B6A63;
+    --ink-faint: #9B9A92;
+    --line: #E3E1D9;
+    --accent: #1F4B4C;
+    --accent-soft: #E4EDEC;
+    --positive: #1E8E3E;
+    --neutral: #B9832A;
+    --negative: #C9432E;
+    --positive-bg: #E7F3EA;
+    --neutral-bg: #F6EEE0;
+    --negative-bg: #F8E7E3;
+    --danger-text: #A3312A;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #171715;
+      --surface: #1F1F1C;
+      --ink: #F0EFEA;
+      --ink-soft: #B0AFA6;
+      --ink-faint: #77766D;
+      --line: #34332D;
+      --accent: #6FB3AF;
+      --accent-soft: #223434;
+      --positive: #4CB86B;
+      --neutral: #D6A34F;
+      --negative: #E2695A;
+      --positive-bg: #1D2E20;
+      --neutral-bg: #332A19;
+      --negative-bg: #332018;
+      --danger-text: #E2695A;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    padding: 2rem;
+    line-height: 1.5;
+  }
+
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 1.75rem;
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 6px;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 30px;
+    margin: 0 0 4px;
+  }
+
+  .meta {
+    color: var(--ink-soft);
+    font-size: 13px;
+    margin: 0;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 1.25rem 0 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  button.load-btn {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 0.5px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  button.load-btn:hover {
+    border-color: var(--ink-faint);
+  }
+
+  .file-name {
+    font-size: 12px;
+    color: var(--ink-faint);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .upload-error {
+    font-size: 13px;
+    color: var(--danger-text);
+    display: none;
+  }
+
+  input[type=file] {
+    display: none;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    border-bottom: 0.5px solid var(--line);
+    margin-bottom: 1.75rem;
+    padding-bottom: 1px;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 10px 16px 12px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--ink-soft);
+    text-align: left;
+  }
+
+  .tab:hover {
+    color: var(--ink);
+  }
+
+  .tab.active {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab .title {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .tab .sku {
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--ink-faint);
+  }
+
+  .tab svg {
+    display: block;
+  }
+
+  .empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+
+  .source-panel {
+    margin-bottom: 2rem;
+  }
+
+  .source-panel h2 {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0 0 0.75rem;
+  }
+
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 0.5px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  .metric-card .label {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin: 0 0 4px;
+  }
+
+  .metric-card .value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    margin: 0;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 0.5px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 16px 8px;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 220px;
+  }
+
+  .no-source-data {
+    background: var(--surface);
+    border: 0.5px solid var(--line);
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 13px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin: 10px 2px 4px;
+  }
+
+  .legend span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend i {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  /* NEW: chart toggle */
+  .chart-toggle {
+    display: inline-flex;
+    background: var(--paper);
+    border: 0.5px solid var(--line);
+    border-radius: 8px;
+    padding: 3px;
+    margin-bottom: 12px;
+  }
+
+  .chart-toggle button {
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .chart-toggle button.active {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 0 0 0.5px var(--line);
+  }
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow" id="brandEyebrow">Sentiment trends</p>
+    <h1 id="brandTitle">Loading…</h1>
+    <p class="meta" id="brandMeta"></p>
+  </header>
+
+  <div class="toolbar">
+    <button class="load-btn" id="loadBtn">Load sentiment_trends.json</button>
+    <input type="file" id="fileInput" accept="application/json">
+    <span class="file-name" id="fileName">Showing sample data</span>
+  </div>
+
+  <p class="upload-error" id="uploadError">
+    Couldn't read that file. Make sure it's the JSON produced by analyze_sentiment_trends.py.
+  </p>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="panelHost"></div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<script>
+
+const SAMPLE_DATA = {
+  brand: "Rare Beauty",
+  generated_at: "2026-08-16T00:00:00+00:00",
+
+  products: {
+
+    "SKU-BLUSH-01": {
+      product_title: "Soft Pinch Liquid Blush",
+
+      sources: {
+        TikTok: {
+          "2026-05": { positive: 12, neutral: 4, negative: 1, total: 17 },
+          "2026-06": { positive: 15, neutral: 3, negative: 2, total: 20 },
+          "2026-07": { positive: 9, neutral: 5, negative: 6, total: 20 }
+        },
+
+        Reddit: {
+          "2026-05": { positive: 4, neutral: 2, negative: 0, total: 6 },
+          "2026-06": { positive: 3, neutral: 3, negative: 1, total: 7 },
+          "2026-07": { positive: 2, neutral: 2, negative: 4, total: 8 }
+        }
+      }
+    },
+
+    "SKU-FOUND-02": {
+      product_title: "Liquid Touch Foundation",
+
+      sources: {
+        TikTok: {
+          "2026-05": { positive: 6, neutral: 4, negative: 8, total: 18 },
+          "2026-06": { positive: 7, neutral: 3, negative: 6, total: 16 },
+          "2026-07": { positive: 10, neutral: 4, negative: 3, total: 17 }
+        },
+
+        Reddit: {
+          "2026-06": { positive: 1, neutral: 1, negative: 5, total: 7 },
+          "2026-07": { positive: 2, neutral: 2, negative: 3, total: 7 }
+        }
+      }
+    },
+
+    "SKU-TINT-03": {
+      product_title: "Positive Light Tinted Moisturizer",
+
+      sources: {
+        TikTok: {
+          "2026-06": { positive: 5, neutral: 1, negative: 0, total: 6 },
+          "2026-07": { positive: 8, neutral: 2, negative: 0, total: 10 }
+        },
+
+        Reddit: {}
+      }
+    }
+  }
+};
+
+
+let currentData = SAMPLE_DATA;
+let activeSku = null;
+
+/* NEW: remembers which chart view each source is using */
+const chartModes = {};
+
+const chartInstances = {};
+
+
+function pct(n, total) {
+  return total
+    ? Math.round((n / total) * 1000) / 10
+    : 0;
+}
+
+
+function combinedMonthly(product) {
+
+  const byMonth = {};
+
+  Object.values(product.sources || {}).forEach(sourceObj => {
+
+    Object.entries(sourceObj || {}).forEach(([month, b]) => {
+
+      const cur = byMonth[month] || {
+        positive: 0,
+        neutral: 0,
+        negative: 0,
+        total: 0
+      };
+
+      cur.positive += b.positive || 0;
+      cur.neutral += b.neutral || 0;
+      cur.negative += b.negative || 0;
+      cur.total += b.total || 0;
+
+      byMonth[month] = cur;
+
+    });
+
+  });
+
+  return Object.keys(byMonth)
+    .sort()
+    .map(m => ({
+      month: m,
+      ...byMonth[m]
+    }));
+}
+
+
+function sparklinePath(points) {
+
+  if (points.length === 0) {
+    return { path: '', dot: null };
+  }
+
+  const w = 84;
+  const h = 22;
+  const pad = 3;
+
+  const scores = points.map(p =>
+    p.total
+      ? ((p.positive - p.negative) / p.total)
+      : 0
+  );
+
+  const min = Math.min(-1, ...scores);
+  const max = Math.max(1, ...scores);
+
+  const xStep = points.length > 1
+    ? (w - pad * 2) / (points.length - 1)
+    : 0;
+
+  const coords = scores.map((s, i) => {
+
+    const x = pad + i * xStep;
+
+    const y =
+      h -
+      pad -
+      ((s - min) / (max - min)) *
+      (h - pad * 2);
+
+    return [x, y];
+
+  });
+
+  if (coords.length === 1) {
+    return {
+      path: '',
+      dot: coords[0]
+    };
+  }
+
+  const path = coords
+    .map((c, i) =>
+      (i === 0 ? 'M' : 'L') +
+      c[0].toFixed(1) +
+      ',' +
+      c[1].toFixed(1)
+    )
+    .join(' ');
+
+  return {
+    path,
+    dot: coords[coords.length - 1]
+  };
+}
+
+
+function renderHeader(data) {
+
+  document.getElementById('brandTitle').textContent =
+    data.brand || 'Sentiment trends';
+
+  const genDate =
+    data.generated_at
+      ? new Date(data.generated_at)
+      : null;
+
+  document.getElementById('brandMeta').textContent =
+    genDate && !isNaN(genDate)
+      ? 'Generated ' +
+        genDate.toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+      : '';
+}
+
+
+function renderTabs(data) {
+
+  const tabsEl = document.getElementById('tabs');
+
+  tabsEl.innerHTML = '';
+
+  const skus = Object.keys(data.products || {});
+
+  if (skus.length === 0) {
+    tabsEl.style.display = 'none';
+    return;
+  }
+
+  tabsEl.style.display = 'flex';
+
+  skus.sort((a, b) =>
+    (data.products[a].product_title || a)
+      .localeCompare(
+        data.products[b].product_title || b
+      )
+  );
+
+  if (!skus.includes(activeSku)) {
+    activeSku = skus[0];
+  }
+
+  skus.forEach(sku => {
+
+    const product = data.products[sku];
+
+    const monthly = combinedMonthly(product);
+
+    const { path, dot } =
+      sparklinePath(monthly);
+
+    const btn =
+      document.createElement('button');
+
+    btn.className =
+      'tab' +
+      (sku === activeSku ? ' active' : '');
+
+    btn.setAttribute('type', 'button');
+
+    btn.innerHTML =
+
+      '<span class="title">' +
+      escapeHtml(
+        product.product_title || sku
+      ) +
+      '</span>' +
+
+      '<span class="sku">' +
+      escapeHtml(sku) +
+      '</span>' +
+
+      '<svg width="84" height="22" viewBox="0 0 84 22" aria-hidden="true">' +
+
+      (
+        path
+          ? '<path d="' +
+            path +
+            '" fill="none" stroke="' +
+            trendColor(monthly) +
+            '" stroke-width="1.5"/>'
+          : ''
+      ) +
+
+      (
+        dot
+          ? '<circle cx="' +
+            dot[0].toFixed(1) +
+            '" cy="' +
+            dot[1].toFixed(1) +
+            '" r="2.5" fill="' +
+            trendColor(monthly) +
+            '"/>'
+          : ''
+      ) +
+
+      '</svg>';
+
+    btn.addEventListener('click', () => {
+
+      activeSku = sku;
+
+      renderTabs(currentData);
+      renderPanel(currentData);
+
+    });
+
+    tabsEl.appendChild(btn);
+
+  });
+}
+
+
+function trendColor(monthly) {
+
+  if (monthly.length === 0) {
+    return 'var(--ink-faint)';
+  }
+
+  const last =
+    monthly[monthly.length - 1];
+
+  const score =
+    last.total
+      ? (last.positive - last.negative) /
+        last.total
+      : 0;
+
+  if (score > 0.15) {
+    return 'var(--positive)';
+  }
+
+  if (score < -0.15) {
+    return 'var(--negative)';
+  }
+
+  return 'var(--neutral)';
+}
+
+
+function escapeHtml(str) {
+
+  const div =
+    document.createElement('div');
+
+  div.textContent = str;
+
+  return div.innerHTML;
+}
+
+
+function destroyChart(id) {
+
+  if (chartInstances[id]) {
+
+    chartInstances[id].destroy();
+
+    delete chartInstances[id];
+  }
+}
+
+
+/* NEW: creates either the bar chart or net sentiment line chart */
+function createChart(
+  canvasId,
+  labels,
+  positivePct,
+  neutralPct,
+  negativePct,
+  rawCounts,
+  mode,
+  tickColor,
+  gridColor
+) {
+
+  const ctx =
+    document.getElementById(canvasId);
+
+  if (!ctx) return;
+
+  destroyChart(canvasId);
+
+  if (mode === 'net') {
+
+    const netSentiment = rawCounts.map(raw =>
+      raw.total
+        ? ((raw.positive - raw.negative) / raw.total) * 100
+        : 0
+    );
+
+    chartInstances[canvasId] =
+      new Chart(ctx, {
+
+        type: 'line',
+
+        data: {
+
+          labels,
+
+          datasets: [{
+            label: 'Net sentiment',
+            data: netSentiment,
+
+            borderColor: '#1F4B4C',
+            backgroundColor: '#1F4B4C',
+
+            borderWidth: 2,
+
+            pointRadius: 4,
+            pointHoverRadius: 6,
+
+            tension: 0.25
+          }]
+
+        },
+
+        options: {
+
+          responsive: true,
+          maintainAspectRatio: false,
+
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+
+          plugins: {
+
+            legend: {
+              display: false
+            },
+
+            tooltip: {
+
+              callbacks: {
+
+                label: (item) => {
+
+                  const raw =
+                    rawCounts[item.dataIndex];
+
+                  const value =
+                    item.parsed.y;
+
+                  return (
+                    'Net sentiment: ' +
+                    (value >= 0 ? '+' : '') +
+                    value.toFixed(1) +
+                    '% (' +
+                    raw.positive +
+                    ' positive, ' +
+                    raw.negative +
+                    ' negative)'
+                  );
+
+                }
+
+              }
+
+            }
+
+          },
+
+          scales: {
+
+            x: {
+              grid: {
+                display: false
+              },
+
+              ticks: {
+                color: tickColor
+              }
+            },
+
+            y: {
+
+              min: -100,
+              max: 100,
+
+              ticks: {
+
+                color: tickColor,
+
+                callback: (v) =>
+                  (v > 0 ? '+' : '') +
+                  v +
+                  '%'
+
+              },
+
+              grid: {
+                color: gridColor
+              }
+            }
+          }
+        }
+      });
+
+  } else {
+
+    chartInstances[canvasId] =
+      new Chart(ctx, {
+
+        type: 'bar',
+
+        data: {
+
+          labels,
+
+          datasets: [
+
+            {
+              label: 'Positive',
+              data: positivePct,
+              backgroundColor: '#1E8E3E',
+              stack: 's'
+            },
+
+            {
+              label: 'Neutral',
+              data: neutralPct,
+              backgroundColor: '#B9832A',
+              stack: 's'
+            },
+
+            {
+              label: 'Negative',
+              data: negativePct,
+              backgroundColor: '#C9432E',
+              stack: 's'
+            }
+
+          ]
+        },
+
+        options: {
+
+          responsive: true,
+          maintainAspectRatio: false,
+
+          plugins: {
+
+            legend: {
+              display: false
+            },
+
+            tooltip: {
+
+              callbacks: {
+
+                label: (item) => {
+
+                  const raw =
+                    rawCounts[item.dataIndex];
+
+                  const key =
+                    item.dataset.label.toLowerCase();
+
+                  return (
+                    item.dataset.label +
+                    ': ' +
+                    item.formattedValue +
+                    '% (' +
+                    raw[key] +
+                    ' of ' +
+                    raw.total +
+                    ')'
+                  );
+
+                }
+
+              }
+
+            }
+
+          },
+
+          scales: {
+
+            x: {
+
+              stacked: true,
+
+              grid: {
+                display: false
+              },
+
+              ticks: {
+                color: tickColor
+              }
+            },
+
+            y: {
+
+              stacked: true,
+
+              min: 0,
+              max: 100,
+
+              ticks: {
+
+                color: tickColor,
+
+                callback: (v) =>
+                  v + '%'
+              },
+
+              grid: {
+                color: gridColor
+              }
+            }
+          }
+        }
+      });
+  }
+}
+
+
+function renderPanel(data) {
+
+  const host =
+    document.getElementById('panelHost');
+
+  host.innerHTML = '';
+
+  const skus =
+    Object.keys(data.products || {});
+
+  if (skus.length === 0) {
+
+    host.innerHTML =
+      '<div class="empty-state">No products in this file.</div>';
+
+    return;
+  }
+
+  const product =
+    data.products[activeSku];
+
+  const sourceNames =
+    Object.keys(product.sources || {});
+
+  if (sourceNames.length === 0) {
+
+    host.innerHTML =
+      '<div class="empty-state">No source data for this product.</div>';
+
+    return;
+  }
+
+  sourceNames.forEach(sourceName => {
+
+    const sourceObj =
+      product.sources[sourceName] || {};
+
+    const months =
+      Object.keys(sourceObj).sort();
+
+    const panel =
+      document.createElement('div');
+
+    panel.className =
+      'source-panel';
+
+    if (months.length === 0) {
+
+      panel.innerHTML =
+
+        '<h2>' +
+        escapeHtml(sourceName) +
+        '</h2>' +
+
+        '<div class="no-source-data">' +
+        'No ' +
+        escapeHtml(sourceName) +
+        ' mentions in this window.' +
+        '</div>';
+
+      host.appendChild(panel);
+
+      return;
+    }
+
+    const totalMentions =
+      months.reduce(
+        (sum, m) =>
+          sum +
+          (sourceObj[m].total || 0),
+        0
+      );
+
+    const totalPositive =
+      months.reduce(
+        (sum, m) =>
+          sum +
+          (sourceObj[m].positive || 0),
+        0
+      );
+
+    const totalNegative =
+      months.reduce(
+        (sum, m) =>
+          sum +
+          (sourceObj[m].negative || 0),
+        0
+      );
+
+    const netScore =
+      pct(
+        totalPositive - totalNegative,
+        totalMentions
+      );
+
+    const canvasId =
+      'chart-' +
+      sourceName.replace(/\s+/g, '-') +
+      '-' +
+      activeSku.replace(/\W+/g, '');
+
+    /* NEW: default to bar chart */
+    if (!chartModes[canvasId]) {
+      chartModes[canvasId] = 'mix';
+    }
+
+    const mode =
+      chartModes[canvasId];
+
+    panel.innerHTML =
+
+      '<h2>' +
+      escapeHtml(sourceName) +
+      '</h2>' +
+
+      '<div class="metrics-row">' +
+
+        '<div class="metric-card">' +
+          '<p class="label">Total mentions</p>' +
+          '<p class="value">' +
+            totalMentions +
+          '</p>' +
+        '</div>' +
+
+        '<div class="metric-card">' +
+          '<p class="label">Net sentiment</p>' +
+          '<p class="value">' +
+            (netScore > 0 ? '+' : '') +
+            netScore +
+            '%' +
+          '</p>' +
+        '</div>' +
+
+        '<div class="metric-card">' +
+          '<p class="label">Months tracked</p>' +
+          '<p class="value">' +
+            months.length +
+          '</p>' +
+        '</div>' +
+
+      '</div>' +
+
+      /* NEW: toggle */
+      '<div class="chart-toggle">' +
+
+        '<button ' +
+          'type="button" ' +
+          'class="' +
+          (mode === 'mix' ? 'active' : '') +
+          '" ' +
+          'data-mode="mix">' +
+          'Sentiment Mix' +
+        '</button>' +
+
+        '<button ' +
+          'type="button" ' +
+          'class="' +
+          (mode === 'net' ? 'active' : '') +
+          '" ' +
+          'data-mode="net">' +
+          'Net Sentiment' +
+        '</button>' +
+
+      '</div>' +
+
+      '<div class="chart-card">' +
+
+        '<div class="chart-wrap">' +
+
+          '<canvas id="' +
+          canvasId +
+          '" role="img" aria-label="Monthly sentiment trends for ' +
+          escapeHtml(sourceName) +
+          '">' +
+
+          '</canvas>' +
+
+        '</div>' +
+
+        /* Legend only applies to sentiment mix */
+        '<div class="legend" id="legend-' +
+        canvasId +
+        '">' +
+
+          '<span>' +
+            '<i style="background:var(--positive)"></i>' +
+            'Positive' +
+          '</span>' +
+
+          '<span>' +
+            '<i style="background:var(--neutral)"></i>' +
+            'Neutral' +
+          '</span>' +
+
+          '<span>' +
+            '<i style="background:var(--negative)"></i>' +
+            'Negative' +
+          '</span>' +
+
+        '</div>' +
+
+      '</div>';
+
+    host.appendChild(panel);
+
+    const labels =
+      months;
+
+    const positivePct =
+      months.map(m =>
+        pct(
+          sourceObj[m].positive,
+          sourceObj[m].total
+        )
+      );
+
+    const neutralPct =
+      months.map(m =>
+        pct(
+          sourceObj[m].neutral,
+          sourceObj[m].total
+        )
+      );
+
+    const negativePct =
+      months.map(m =>
+        pct(
+          sourceObj[m].negative,
+          sourceObj[m].total
+        )
+      );
+
+    const rawCounts =
+      months.map(m =>
+        sourceObj[m]
+      );
+
+    const isDark =
+      window.matchMedia &&
+      window.matchMedia(
+        '(prefers-color-scheme: dark)'
+      ).matches;
+
+    const tickColor =
+      isDark
+        ? '#B0AFA6'
+        : '#6B6A63';
+
+    const gridColor =
+      isDark
+        ? 'rgba(255,255,255,0.08)'
+        : 'rgba(0,0,0,0.08)';
+
+    /* NEW: toggle behavior */
+    const toggleButtons =
+      panel.querySelectorAll(
+        '.chart-toggle button'
+      );
+
+    toggleButtons.forEach(button => {
+
+      button.addEventListener(
+        'click',
+        () => {
+
+          chartModes[canvasId] =
+            button.dataset.mode;
+
+          renderPanel(data);
+
+        }
+      );
+
+    });
+
+    requestAnimationFrame(() => {
+
+      createChart(
+        canvasId,
+        labels,
+        positivePct,
+        neutralPct,
+        negativePct,
+        rawCounts,
+        mode,
+        tickColor,
+        gridColor
+      );
+
+      /* Hide legend when viewing net sentiment */
+      const legend =
+        document.getElementById(
+          'legend-' + canvasId
+        );
+
+      if (legend) {
+        legend.style.display =
+          mode === 'mix'
+            ? 'flex'
+            : 'none';
+      }
+
+    });
+
+  });
+}
+
+
+function renderAll(data) {
+
+  renderHeader(data);
+
+  renderTabs(data);
+
+  renderPanel(data);
+}
+
+
+document
+  .getElementById('loadBtn')
+  .addEventListener('click', () => {
+
+    document
+      .getElementById('fileInput')
+      .click();
+
+  });
+
+
+document
+  .getElementById('fileInput')
+  .addEventListener('change', (e) => {
+
+    const file =
+      e.target.files[0];
+
+    const errorEl =
+      document.getElementById(
+        'uploadError'
+      );
+
+    errorEl.style.display =
+      'none';
+
+    if (!file) return;
+
+    const reader =
+      new FileReader();
+
+    reader.onload = () => {
+
+      try {
+
+        const parsed =
+          JSON.parse(reader.result);
+
+        if (
+          !parsed ||
+          typeof parsed.products !== 'object'
+        ) {
+          throw new Error(
+            'Missing products object'
+          );
+        }
+
+        currentData =
+          parsed;
+
+        activeSku =
+          null;
+
+        document
+          .getElementById('fileName')
+          .textContent =
+          file.name;
+
+        renderAll(
+          currentData
+        );
+
+      } catch (err) {
+
+        errorEl.style.display =
+          'block';
+
+      }
+
+    };
+
+    reader.onerror = () => {
+
+      errorEl.style.display =
+        'block';
+
+    };
+
+    reader.readAsText(file);
+
+  });
+
+
+renderAll(currentData);
+
+</script>
+
+</body>
+</html>
